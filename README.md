@@ -4,10 +4,10 @@ A Telegram bot that replans one person's day. It **moves** unfinished tasks
 instead of cloning them, **shows** you the plan before it commits it, and
 **refuses** to call a broken planner a rest day.
 
-📊 **Case study: [a day that replans itself](docs/index.html)** — the failure, the
-fix, and the architecture in eight screens. It is a single self-contained HTML
-file: open it locally, or serve `docs/` with GitHub Pages. GitHub's file view
-shows the source, not the page.
+📊 **Case study: [a day that replans itself](https://m1zz1-ai.github.io/notion-task-bot/)**
+— the failure, the fix, and the architecture in eight screens. One self-contained
+HTML file, served from [`docs/`](docs/); open it locally if you would rather not
+leave the repo.
 
 ---
 
