@@ -1,4 +1,4 @@
-"""Resilience: a failing cycle is swallowed + alerted, process survives."""
+"""Phoenix resilience: a failing cycle is swallowed + alerted, process survives."""
 
 import asyncio
 

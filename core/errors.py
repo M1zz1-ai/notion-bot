@@ -1,9 +1,9 @@
-"""Shared exception types + resilient execution.
+"""Shared exception types + phoenix resilience.
 
-Resilience is the design goal: a failed work cycle is logged, optionally
-alerted to Telegram, and the process KEEPS RUNNING so the next cycle retries. A
-single transient failure (network blip, rate limit, expired token) never kills
-the bot.
+Resilience is the design goal carried over from gmail-bot-py: a failed work
+cycle is logged, optionally alerted to Telegram, and the process KEEPS RUNNING
+so the next cycle retries. A single transient failure (network blip, rate
+limit, expired token) never kills a bot.
 """
 
 from __future__ import annotations
@@ -23,15 +23,23 @@ T = TypeVar("T")
 
 
 class CoreError(RuntimeError):
-    """Base for all core errors."""
+    """Base for all m1zz1-bots core errors."""
 
 
 class ConfigError(CoreError):
     """Raised when a required configuration key is missing or empty."""
 
 
+class FalError(CoreError):
+    """Raised when a fal.ai request fails."""
+
+
 class NotionError(CoreError):
     """Raised when a notion-cli subprocess call fails."""
+
+
+class SheetError(CoreError):
+    """Raised when a spreadsheet operation fails."""
 
 
 class SttError(CoreError):
@@ -39,7 +47,7 @@ class SttError(CoreError):
 
 
 class AgentError(CoreError):
-    """Raised when the LLM agent loop fails irrecoverably."""
+    """Raised when the Anthropic agent loop fails irrecoverably."""
 
 
 # ---- alert sink --------------------------------------------------------
@@ -64,7 +72,7 @@ async def _send_alert(alerter: Alerter | None, message: str) -> None:
 # ---- resilient execution ----------------------------------------------
 
 
-async def run_resilient[T](
+async def run_resilient(
     work: Callable[[], Awaitable[T]],
     *,
     alerter: Alerter | None = None,

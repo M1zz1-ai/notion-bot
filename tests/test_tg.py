@@ -1,6 +1,8 @@
 """Telegram layer: pure helpers (chunking, callback parse, keyboards) + client
 send paths with a fake aiogram Bot (no network)."""
 
+import re
+
 import pytest
 
 from core.tg import (
@@ -13,6 +15,7 @@ from core.tg import (
     parse_callback,
     reply_keyboard,
 )
+
 
 # ---- chunking ----------------------------------------------------------
 
@@ -38,6 +41,61 @@ def test_chunk_hard_splits_a_long_unbroken_line():
     chunks = chunk_text(text, limit=40)
     assert all(len(c) <= 40 for c in chunks)
     assert "".join(chunks) == text
+
+
+# ---- chunking is tag-aware (the client sends with parse_mode=HTML) ------
+
+
+def _tags_balanced(chunk: str) -> bool:
+    """Every chunk is parsed as a standalone document by Telegram."""
+    stack = []
+    for is_close, name in re.findall(r"<(/?)([a-zA-Z][-a-zA-Z0-9]*)[^<>]*>", chunk):
+        if is_close:
+            if not stack or stack.pop() != name:
+                return False
+        else:
+            stack.append(name)
+    return not stack
+
+
+def test_chunk_never_cuts_inside_a_tag():
+    # A cut landing mid-"<blockquote>" produces two unparseable halves.
+    text = "a" * 30 + "\n<blockquote>" + "b" * 60 + "</blockquote>"
+    for chunk in chunk_text(text, limit=40):
+        assert "<" not in chunk or ">" in chunk[chunk.rindex("<") :]
+
+
+def test_chunk_closes_and_reopens_a_tag_spanning_the_boundary():
+    text = "<b>" + "a" * 30 + "\n" + "b" * 30 + "</b>"
+    chunks = chunk_text(text, limit=45)
+    assert len(chunks) == 2
+    assert chunks[0].endswith("</b>")
+    assert chunks[1].startswith("<b>")
+    assert all(_tags_balanced(c) for c in chunks)
+
+
+def test_chunk_preserves_tag_attributes_when_reopening():
+    href = '<a href="https://x.io/a">'
+    text = href + "a" * 30 + "\n" + "b" * 30 + "</a>"
+    chunks = chunk_text(text, limit=60)
+    assert chunks[1].startswith(href)
+
+
+def test_long_html_reply_chunks_without_breaking_a_tag():
+    """DoD: a >4096-char formatted reply survives the 4096 chunker."""
+    line = "• <b>task</b> at <i>17:00</i> &amp; more\n"
+    text = "<blockquote>" + line * 200 + "</blockquote>"
+    assert len(text) > 4096
+    chunks = chunk_text(text)
+    assert len(chunks) > 1
+    assert all(len(c) <= 4096 for c in chunks)
+    assert all(_tags_balanced(c) for c in chunks)
+
+
+def test_chunking_plain_text_is_unchanged_by_tag_awareness():
+    text = "\n".join("line %d" % i for i in range(500))
+    chunks = chunk_text(text, limit=100)
+    assert "\n".join(chunks) == text
 
 
 # ---- callback parsing --------------------------------------------------

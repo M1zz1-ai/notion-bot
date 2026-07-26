@@ -1,13 +1,12 @@
-"""Shared, bot-agnostic core.
+"""m1zz1-bots shared core.
 
-Generic building blocks for a Telegram bot backed by an LLM agent:
-Telegram I/O (:mod:`core.tg`), an OpenAI tool-calling agent
-(:mod:`core.openai_agent`), speech-to-text (:mod:`core.stt`), a resilient
-interval scheduler (:mod:`core.scheduler`), config loading (:mod:`core.config`)
-and a thin ``notion-cli`` wrapper (:mod:`core.notion`).
+Generic, bot-agnostic building blocks for Bogdan's Python+n8n hybrid bots:
+Telegram I/O, an Anthropic tool-calling agent, redis state, fal.ai media,
+Notion tasks, spreadsheets, and a resilient interval scheduler.
 
-Each bot capability is exposed as an agent-compatible callable so a single
-agent can register every tool it needs.
+Each bot is a thin module on this core, and each bot capability is exposed as
+an agent-compatible callable (see ``core.agent``) so all bots' tools can later
+be registered into one unified agent.
 """
 
 __version__ = "0.1.0"

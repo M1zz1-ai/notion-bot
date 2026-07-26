@@ -15,6 +15,7 @@ import pytest
 from core.errors import AgentError
 from core.openai_agent import DEFAULT_MODEL, OpenAIAgent
 
+
 # ---- fake SDK objects --------------------------------------------------
 
 

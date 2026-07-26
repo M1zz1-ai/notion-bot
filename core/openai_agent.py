@@ -1,12 +1,16 @@
-"""OpenAI chat-completions agent: the bot's LLM brain.
+"""OpenAI chat-completions agent: the focus bots' LLM brain.
 
-Covers the surface the bot uses — ``run`` (plain completion OR a tool-calling
-loop), ``structured_output`` (JSON-schema constrained), and ``tool``
-registration. The tool loop: schema inferred from each callable's signature, a
+An OpenAI counterpart to :class:`core.agent.Agent` covering the surface the focus
+bots use — ``run`` (plain completion OR a tool-calling loop), ``structured_output``
+(JSON-schema constrained), and ``tool`` registration. The tool loop mirrors the
+Anthropic loop's semantics: schema inferred from each callable's signature, a
 max-iterations cap, tool results fed back as ``role: tool`` messages, and tool
 exceptions surfaced to the model as an ``Error: ...`` string rather than crashing.
 
-The same ``OPENAI_API_KEY`` powers Whisper STT in :mod:`core.stt`.
+Why this exists: Bogdan decided not to top up the exhausted direct Anthropic API
+key on the VPS, so the focus bots' brains moved to OpenAI (``OPENAI_API_KEY``
+already powers Whisper STT in ``core.stt``). ``core.agent`` (Anthropic) is left
+untouched for any non-focus consumer.
 
 Model note: the GPT-5 family are reasoning models. Consequences baked in here:
 requests use ``max_completion_tokens`` (they reject the older ``max_tokens``
@@ -62,6 +66,8 @@ def _schema_from_signature(fn: Callable[..., Any]) -> dict[str, Any]:
     """Build a minimal JSON Schema from a callable's annotations.
 
     Required = params without a default. Unannotated params default to string.
+    (Identical inference to ``core.agent`` so a callable registers the same way
+    on either agent — the monorepo unification constraint.)
     """
     sig = inspect.signature(fn)
     properties: dict[str, Any] = {}
@@ -83,8 +89,8 @@ def _schema_from_signature(fn: Callable[..., Any]) -> dict[str, Any]:
 class OpenAIAgent:
     """A minimal OpenAI chat agent: plain, tool-calling, and structured completions.
 
-    Build it as
-    ``OpenAIAgent(client, system=..., model=..., max_tokens=...)``.
+    Constructor shape mirrors :class:`core.agent.Agent` so consumers build it the
+    same way (``OpenAIAgent(client, system=..., model=..., max_tokens=...)``).
 
     Args:
         client: An ``openai.OpenAI`` instance (sync).
