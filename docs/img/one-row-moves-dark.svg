@@ -1,0 +1,23 @@
+<svg viewBox="-16.0 -16.0 652.0 222.0" width="652.0" height="222.0" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="One node translating down a time axis, dotted ghost left at each vacated slot"><rect x="-16.0" y="-16.0" width="652.0" height="222.0" fill="#0E0A14"/>
+        <defs><linearGradient id="g1" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#2E2440"/><stop offset="1" stop-color="#EDE6DA"/></linearGradient>
+          <marker id="a1" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+          <path d="M0 0 L7 3.5 L0 7 z" fill="#EDE6DA"/></marker></defs>
+        <g font-family="ui-monospace,monospace" font-size="10" fill="#EDE6DA" opacity=".6">
+          <text x="0" y="12">MON</text><text x="200" y="12">TUE</text><text x="400" y="12">WED</text>
+        </g>
+        <g stroke="#2E2440" stroke-width="1" fill="none">
+          <line x1="0" y1="22" x2="620" y2="22"/><line x1="0" y1="150" x2="620" y2="150"/>
+        </g>
+        <g stroke="#3A2E52" stroke-width="1" stroke-dasharray="3 4" fill="none">
+          <rect x="0" y="44" width="150" height="26"/><rect x="200" y="76" width="150" height="26"/>
+        </g>
+        <rect x="400" y="108" width="150" height="26" fill="#171122"
+          stroke="#EDE6DA" stroke-width="1"/>
+        <text x="410" y="125" font-family="ui-monospace,monospace" font-size="9"
+          fill="#EDE6DA">Draft release notes</text>
+        <path d="M150 57 L200 89" stroke="url(#g1)" stroke-width="2" fill="none"/>
+        <path d="M350 89 L400 121" stroke="url(#g1)" stroke-width="2" fill="none" marker-end="url(#a1)"/>
+        <text x="0" y="180" font-family="ui-monospace,monospace" font-size="10"
+          fill="#EDE6DA" opacity=".6">ONE ROW · ONE IDENTITY · COUNT UNCHANGED</text>
+      </svg>
