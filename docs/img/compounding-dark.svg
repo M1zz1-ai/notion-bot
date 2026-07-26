@@ -1,0 +1,29 @@
+<svg viewBox="-16.0 -16.0 652.0 232.0" width="652.0" height="232.0" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="One task stamped repeatedly until unreadable, counts rising to 187"><rect x="-16.0" y="-16.0" width="652.0" height="232.0" fill="#0E0A14"/>
+        <g font-family="ui-monospace,monospace" font-size="10" fill="#EDE6DA">
+          <text x="0" y="14" opacity=".6">DAY 1 · 17</text>
+          <text x="240" y="14" opacity=".6">DAY 7 · 78</text>
+          <text x="470" y="14" opacity=".6">DAY 14 · 187</text>
+        </g>
+        <g stroke="#EDE6DA" fill="none" stroke-width="1">
+          <rect x="0" y="30" width="150" height="26" opacity=".85"/>
+          <g opacity=".8"><rect x="243" y="30" width="150" height="26"/><rect x="246" y="33" width="150" height="26"/>
+            <rect x="249" y="36" width="150" height="26"/><rect x="252" y="39" width="150" height="26"/>
+            <rect x="255" y="42" width="150" height="26"/></g>
+          <g opacity=".52"><rect x="440" y="30" width="150" height="26"/><rect x="443" y="33" width="150" height="26"/>
+            <rect x="446" y="36" width="150" height="26"/><rect x="449" y="39" width="150" height="26"/>
+            <rect x="452" y="42" width="150" height="26"/><rect x="455" y="45" width="150" height="26"/>
+            <rect x="458" y="48" width="150" height="26"/><rect x="461" y="51" width="150" height="26"/>
+            <rect x="464" y="54" width="150" height="26"/><rect x="467" y="57" width="150" height="26"/>
+            <rect x="470" y="60" width="150" height="26"/><rect x="473" y="63" width="150" height="26"/>
+            <rect x="476" y="66" width="150" height="26"/><rect x="479" y="69" width="150" height="26"/></g>
+        </g>
+        <g font-family="ui-monospace,monospace" font-size="9" fill="#EDE6DA" opacity=".9">
+          <text x="10" y="47">Draft release notes</text><text x="253" y="47">Draft release notes</text>
+          <text x="450" y="47">Draft release notes</text>
+        </g>
+        <line x1="0" y1="120" x2="620" y2="120" stroke="#2E2440" stroke-width="1"/>
+        <path d="M0 118 L200 116 L340 100 L460 66 L560 20 L620 4" fill="none"
+          stroke="#FF6B5E" stroke-width="2" transform="translate(0,60)"/>
+        <text x="0" y="196" font-family="ui-monospace,monospace" font-size="10"
+          fill="#EDE6DA" opacity=".6">TASK COUNT PER DAY</text>
+      </svg>

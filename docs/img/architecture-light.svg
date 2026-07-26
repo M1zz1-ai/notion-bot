@@ -1,0 +1,53 @@
+<svg viewBox="-16.0 -16.0 652.0 432.0" width="652.0" height="432.0" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Architecture: telegram and a planner brief enter one process running four loops; all writes exit through notion-cli to Notion"><rect x="-16.0" y="-16.0" width="652.0" height="432.0" fill="#F4F0E8"/>
+        <defs><symbol id="i-cl" viewBox="0 0 24 24"><g stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 3.2v17.6M3.2 12h17.6M5.8 5.8l12.4 12.4M18.2 5.8 5.8 18.2"/></g></symbol><symbol id="i-nt" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.7" d="M3.6 4.4 15 3.2c.9-.1 1.4.1 1.9.6l3 2.6c.4.4.6.7.6 1.3v12c0 .8-.4 1.3-1.3 1.4L6.4 21.9c-.8.1-1.3-.1-1.8-.7l-2-2.6c-.4-.6-.6-1-.6-1.6V5.7c0-.7.3-1.2 1.6-1.3Z"/><path fill="currentColor" d="M8.2 8.3v7.2l1.5-.1V11l3.2 4.3 1.5-.1V8l-1.5.1v4.2L9.8 8.2l-1.6.1Z"/></symbol><symbol id="i-py" viewBox="0 0 24 24"><path fill="currentColor" d="M11.9 1.5c-2.6 0-4.4.8-4.4 3v2.3h4.5v.8H5.7c-2.2 0-4.1 1.3-4.1 4.5s1.7 4.6 3.9 4.6h1.6v-2.8c0-2.4 2.1-4.5 4.5-4.5h4.5c2 0 3.6-1.6 3.6-3.6V4.5c0-1.9-1.6-2.6-3.6-2.9-1.4-.1-2.8-.1-4.2-.1Zm-2.4 2c.5 0 .9.4.9.9s-.4.9-.9.9-.9-.4-.9-.9.4-.9.9-.9Z"/><path fill="currentColor" opacity=".55" d="M12.1 22.5c2.6 0 4.4-.8 4.4-3v-2.3H12v-.8h6.3c2.2 0 4.1-1.3 4.1-4.5s-1.7-4.6-3.9-4.6h-1.6v2.8c0 2.4-2.1 4.5-4.5 4.5H7.9c-2 0-3.6 1.6-3.6 3.6v1.3c0 1.9 1.6 2.6 3.6 2.9 1.4.1 2.8.1 4.2.1Zm2.4-2c-.5 0-.9-.4-.9-.9s.4-.9.9-.9.9.4.9.9-.4.9-.9.9Z"/></symbol><symbol id="i-tg" viewBox="0 0 24 24"><path fill="currentColor" d="M21.8 3.3 2.9 10.6c-1 .4-1 1.8 0 2.2l4.6 1.6 1.8 5.5c.3.9 1.4 1.1 2 .4l2.5-2.6 4.7 3.5c.7.5 1.7.1 1.9-.7l3.3-15.5c.2-1-.8-1.9-1.9-1.7ZM8.9 14.3l9.3-6.7-7.6 8.1-.3 3.2-1.4-4.6Z"/></symbol><linearGradient id="gv" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#CFC6B6"/><stop offset="1" stop-color="#1A1420"/></linearGradient>
+          <marker id="av" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+          <path d="M0 0 L7 3.5 L0 7 z" fill="#1A1420"/></marker></defs>
+
+        <g font-family="ui-monospace,monospace" font-size="9" fill="#1A1420">
+          <use color="#1A1420" href="#i-tg" x="0" y="4" width="12" height="12" opacity=".85"/><text x="18" y="14" opacity=".85">TELEGRAM</text>
+          <line x1="0" y1="20" x2="88" y2="20" stroke="#1A1420" stroke-width="1"/>
+          <use color="#1A1420" href="#i-cl" x="452" y="4" width="12" height="12" opacity=".85"/><text x="470" y="14" opacity=".85">PLANNER BRIEF</text>
+          <line x1="452" y1="20" x2="560" y2="20" stroke="#1A1420" stroke-width="1"/>
+          <text x="452" y="34" opacity=".5">Claude Code, on the Mac</text>
+
+          <rect x="0" y="58" width="620" height="128" fill="none" stroke="#6B3FBF" stroke-width="1"/>
+          <use href="#i-py" x="10" y="64" width="12" height="12" color="#6B3FBF"/><text x="28" y="74" fill="#6B3FBF">python -m notion · systemd</text>
+
+          <g stroke="#1A1420" stroke-width="1" fill="#EAE4D8">
+            <rect x="14" y="88" width="138" height="42"/><rect x="166" y="88" width="138" height="42"/>
+            <rect x="318" y="88" width="138" height="42"/><rect x="470" y="88" width="136" height="42"/>
+          </g>
+          <text x="24" y="105">long-poll</text><text x="24" y="120" opacity=".55">chat + voice</text>
+          <text x="176" y="105">digest</text><text x="176" y="120" opacity=".55">11:00, wall clock</text>
+          <text x="328" y="105">pinger</text><text x="328" y="120" opacity=".55">60 s tick</text>
+          <text x="480" y="105">brief</text><text x="480" y="120" opacity=".55">announce · commit</text>
+
+          <g stroke="#1A1420" stroke-width="1" fill="#EAE4D8">
+            <rect x="14" y="148" width="138" height="26"/><rect x="470" y="148" width="136" height="26"/>
+          </g>
+          <text x="24" y="165">openai_agent</text><text x="480" y="165">redis ledger</text>
+          <text x="24" y="186" opacity=".5">11 tools · Whisper</text>
+          <text x="470" y="186" opacity=".5">announced · answered · pinged</text>
+
+          <rect x="166" y="228" width="290" height="34" fill="#EAE4D8"
+            stroke="#6B3FBF" stroke-width="2"/>
+          <text x="178" y="249" fill="#6B3FBF">notion-cli — the single write path</text>
+          <text x="166" y="278" opacity=".5">enum validation · offset re-stamping · DoD into page body</text>
+
+          <use color="#1A1420" href="#i-nt" x="176" y="320" width="12" height="12" opacity=".85"/><text x="194" y="330" opacity=".85">NOTION</text>
+          <line x1="176" y1="340" x2="266" y2="340" stroke="#1A1420" stroke-width="1"/>
+          <text x="176" y="356" opacity=".5">tasks · projects · habits</text>
+          <text x="14" y="330" opacity=".85">OPENAI</text>
+          <line x1="14" y1="336" x2="76" y2="336" stroke="#1A1420" stroke-width="1"/>
+          <text x="14" y="352" opacity=".5">chat only</text>
+        </g>
+
+        <g stroke="url(#gv)" stroke-width="2" fill="none" marker-end="url(#av)">
+          <path d="M44 24 L44 88"/><path d="M506 38 L506 88"/>
+          <path d="M83 174 L83 228"/><path d="M235 130 L235 228"/><path d="M387 130 L387 228"/>
+          <path d="M538 174 L538 262 L456 262"/>
+          <path d="M300 262 L300 318"/>
+        </g>
+        <path d="M60 174 L44 318" stroke="#CFC6B6" stroke-width="1" fill="none"/>
+      </svg>

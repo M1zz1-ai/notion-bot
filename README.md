@@ -4,7 +4,7 @@ A Telegram bot that replans one person's day. It **moves** unfinished tasks
 instead of cloning them, **shows** you the plan before it commits it, and
 **refuses** to call a broken planner a rest day.
 
-📊 **Case study: [a day that replans itself](https://m1zz1-ai.github.io/notion-bot/)**
+📊 The same story as a full-screen deck: **[a day that replans itself](https://m1zz1-ai.github.io/notion-bot/)**
 — the failure, the fix, and the architecture in eight screens. One self-contained
 HTML file, served from [`docs/`](docs/); open it locally if you would rather not
 leave the repo.
@@ -15,10 +15,29 @@ leave the repo.
 
 The previous generator re-created every unfinished task each morning and left the
 original open. Two weeks in, a tracker holding 17 tasks a day held 187 — 1,234
-clone rows, up to 66 copies of a single task. A list that long cannot be worked,
-so it stops being opened, and the plan quietly stops existing.
+clone rows, up to 66 copies of a single task.
 
-Every design decision below is downstream of that.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/compounding-dark.svg">
+  <img alt="One task stamped again and again across two weeks until the rows are unreadable, with the daily count climbing from 17 to 187" src="docs/img/compounding-light.svg" width="100%">
+</picture>
+
+Nothing above is marked wrong, because nothing *was* wrong by the tracker's own
+rules — every row is a valid task. The illegibility is the failure. A list that
+long cannot be worked, so it stops being opened, and the plan quietly stops
+existing.
+
+## The fix: a row moves, it never clones
+
+An unfinished task keeps one identity across every replan. The row that leaves a
+slot leaves nothing behind but an empty slot, and the count does not move.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/one-row-moves-dark.svg">
+  <img alt="A single task travelling down a time axis from Monday to Wednesday, leaving a dotted outline in each slot it vacates, with the total count unchanged" src="docs/img/one-row-moves-light.svg" width="100%">
+</picture>
+
+Every design decision below is downstream of those two pictures.
 
 | The rule | What it prevents |
 |---|---|
@@ -39,9 +58,38 @@ One systemd unit, four loops running side by side:
 - **brief runner** — consumes one plan draft per day, announces it, and commits it
   if you have not answered by the fallback hour.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/architecture-dark.svg">
+  <img alt="Telegram and a planner brief entering one systemd process that runs four loops side by side; every loop's writes converge on notion-cli, the single write path, before reaching Notion" src="docs/img/architecture-light.svg" width="100%">
+</picture>
+
 Everything that touches Notion — the model, a timer, a committed draft — leaves
-through `notion-cli`. Enum validation, timezone stamping and DoD placement happen
-in exactly one place because there is exactly one door.
+through `notion-cli`, drawn above as the one violet box every arrow converges on.
+Enum validation, timezone stamping and DoD placement happen in exactly one place
+because there is exactly one door.
+
+## What it refuses to do
+
+The same discipline that fixed the cloning bug, applied before it can happen
+again. Each of these ends in a stop, never a silent write.
+
+- **It will not commit a plan you were not shown.** Briefs are identified by a
+  hash of their content, and the commit is gated on that exact brief having been
+  announced. Shown and written cannot diverge.
+- **It will not create a project.** A near-miss name would create a second
+  project instead of editing the first, splitting progress across two rows with
+  nothing visibly wrong.
+- **It will not call an empty day a rest day.** These are two different
+  messages, and every other scheduler renders them identically:
+
+```
+🚨 THE PLANNER DID NOT RUN.
+This is NOT a day off, this is a failure.
+
+                — vs —
+
+Empty on purpose — a rest day. 🎉
+```
 
 ---
 
