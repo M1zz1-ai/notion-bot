@@ -1,9 +1,10 @@
-"""Notion task bot: Telegram text/voice -> LLM agent with Notion CRUD tools.
+"""Notion task bot: Telegram text/voice -> Claude agent with Notion CRUD tools.
 
-A conversational agent over a Daily Task Tracker (create/find/update/complete/
-archive tasks) and a separate Habit Tracker, with per-chat memory and voice
-input, plus a daily morning digest. Notion auth is owned by the external
-``notion-cli`` (via :mod:`core.notion`) — no Notion API key lives in this repo.
+Phase consumer of the shared ``core``. Replicates the n8n "Notion · Task Tracker
+TG Bot v2" (cGGA6bLJWJnqcKug): a conversational Claude agent over Bogdan's Daily
+Task Tracker (create/find/update/complete/archive tasks) with per-chat memory and
+voice input, plus a daily morning digest. Notion auth is owned by the already
+configured ``notion-cli`` (via ``core.notion``) — no Notion key needed here.
 """
 
 from .bot import NotionBot

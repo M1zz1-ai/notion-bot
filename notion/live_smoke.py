@@ -7,9 +7,9 @@ notion-cli, OpenAI and Telegram. Guard-railed and clearly labelled:
   * Sends the morning digest to the owner chat.
   * Never starts the long-poll loop.
 
-When ``TELEGRAM_BOT_TOKEN_NOTION`` or ``OPENAI_API_KEY`` are absent it SKIPS
-with a clear message and exits 0 — it never invents creds. (notion-cli auth is
-separate and configured outside this repo.)
+Gating mirrors gmail-bot-py: when ``TELEGRAM_BOT_TOKEN_NOTION`` or
+``OPENAI_API_KEY`` are absent it SKIPS with a clear message and exits 0 — it
+never invents creds. (notion-cli auth is separate and already configured.)
 
 Run:
   uv run python -m notion.live_smoke
@@ -54,7 +54,7 @@ def _gate() -> config.Config | None:
         if missing:
             print(
                 f"SKIP — live smoke needs {', '.join(GATING_KEYS)} in "
-                f".env (missing: {', '.join(missing)}). "
+                f"~/.config/m1zz1/.env (missing: {', '.join(missing)}). "
                 "No real creds present; nothing to do."
             )
             return None

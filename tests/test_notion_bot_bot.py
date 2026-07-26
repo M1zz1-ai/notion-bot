@@ -22,7 +22,7 @@ class _FakeTg:
 
 
 class _FakeAgent:
-    """Stands in for a per-chat OpenAIAgent. Records prompts; replies fixed."""
+    """Stands in for a per-chat core.agent.Agent. Records prompts; replies fixed."""
 
     def __init__(self, reply: str = "done ✅") -> None:
         self.reply = reply
@@ -69,6 +69,43 @@ async def test_text_runs_agent_and_replies() -> None:
     await bot.on_text(chat_id=7, text="add task Gym tomorrow")
     assert created and created[0].prompts == ["add task Gym tomorrow"]
     assert any("created Gym" in t["text"] for t in fake_tg.texts)
+
+
+@pytest.mark.asyncio
+async def test_reply_markdown_is_converted_to_telegram_html() -> None:
+    """The client is in HTML parse mode; raw ** would leak asterisks verbatim."""
+    bot, fake_tg, _ = _make_bot("**Gym** moved")
+    await bot.on_text(chat_id=7, text="move gym")
+    assert fake_tg.texts[-1]["text"] == "<b>Gym</b> moved"
+
+
+@pytest.mark.asyncio
+async def test_reply_with_ampersand_is_escaped_not_raised() -> None:
+    """Bogdan has a project named "Schedule & Secretary" — a live crash."""
+    bot, fake_tg, _ = _make_bot("**Schedule & Secretary** — a < b")
+    await bot.on_text(chat_id=7, text="status?")
+    assert fake_tg.texts[-1]["text"] == "<b>Schedule &amp; Secretary</b> — a &lt; b"
+
+
+@pytest.mark.asyncio
+async def test_voice_reply_is_converted_too(monkeypatch) -> None:
+    bot, fake_tg, _ = _make_bot("- **gym** & run")
+
+    async def fake_transcribe(audio: Any, **kw: Any) -> str:
+        return "что у меня сегодня"
+
+    monkeypatch.setattr(notion_bot, "transcribe", fake_transcribe)
+    await bot.on_voice(chat_id=7, audio_bytes=b"\x00ogg")
+    assert fake_tg.texts[-1]["text"] == "• <b>gym</b> &amp; run"
+
+
+@pytest.mark.asyncio
+async def test_welcome_is_not_run_through_the_markdown_converter() -> None:
+    """WELCOME is hand-authored HTML; converting it would show &lt;b&gt;."""
+    bot, fake_tg, _ = _make_bot()
+    await bot.on_start(chat_id=7)
+    assert "<b>" in fake_tg.texts[-1]["text"]
+    assert "&lt;b&gt;" not in fake_tg.texts[-1]["text"]
 
 
 @pytest.mark.asyncio
@@ -129,3 +166,62 @@ async def test_agent_failure_pings_user_not_crash() -> None:
     bot._agent_factory = factory_boom  # type: ignore[attr-defined]
     await bot.on_text(chat_id=7, text="add Gym")  # must not raise
     assert any("fail" in t["text"].lower() or "⚠️" in t["text"] for t in fake_tg.texts)
+
+
+# ---- day-loop hook ------------------------------------------------------
+
+
+def _hooked_bot(hook: Any) -> notion_bot.NotionBot:
+    return notion_bot.NotionBot(
+        telegram=_FakeTg(),  # type: ignore[arg-type]
+        agent_factory=lambda: _FakeAgent("ok"),
+        owner_chat_id=42,
+        on_owner_message=hook,
+    )
+
+
+@pytest.mark.asyncio
+async def test_owner_message_notifies_the_day_loop() -> None:
+    """Any owner message is the 'he answered' signal that stands the 10:00 commit down."""
+    calls: list[int] = []
+    bot = _hooked_bot(lambda: calls.append(1))
+    await bot.on_text(chat_id=42, text="сделаю зал в 18")
+    assert calls == [1]
+
+
+@pytest.mark.asyncio
+async def test_other_chats_do_not_notify_the_day_loop() -> None:
+    calls: list[int] = []
+    bot = _hooked_bot(lambda: calls.append(1))
+    await bot.on_text(chat_id=7, text="hi")
+    assert calls == []
+
+
+@pytest.mark.asyncio
+async def test_voice_from_owner_notifies_the_day_loop(monkeypatch) -> None:
+    calls: list[int] = []
+
+    async def fake_transcribe(audio: Any, **kw: Any) -> str:
+        return "план ок"
+
+    monkeypatch.setattr(notion_bot, "transcribe", fake_transcribe)
+    await _hooked_bot(lambda: calls.append(1)).on_voice(chat_id=42, audio_bytes=b"x")
+    assert calls == [1]
+
+
+@pytest.mark.asyncio
+async def test_a_broken_hook_does_not_swallow_the_reply() -> None:
+    """A dead ledger degrades the fallback, it does not mute the conversation."""
+
+    def boom() -> None:
+        raise RuntimeError("redis down")
+
+    fake_tg = _FakeTg()
+    bot = notion_bot.NotionBot(
+        telegram=fake_tg,  # type: ignore[arg-type]
+        agent_factory=lambda: _FakeAgent("готово ✅"),
+        owner_chat_id=42,
+        on_owner_message=boom,
+    )
+    await bot.on_text(chat_id=42, text="hi")  # must not raise
+    assert any("готово" in t["text"] for t in fake_tg.texts)

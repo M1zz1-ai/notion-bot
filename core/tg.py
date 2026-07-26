@@ -1,6 +1,6 @@
 """Reusable aiogram-based Telegram layer, bot-agnostic.
 
-A reusable TelegramClient built from ANY
+Generalizes gmail-bot-py's telegram_bot.py: a TelegramClient built from ANY
 token (so per-bot tokens like TELEGRAM_BOT_TOKEN_IMAGE coexist), text sending
 with auto-chunking past Telegram's 4096-char limit, photo/document sending,
 inline keyboards, callback parsing, and a generic human-in-the-loop approval
@@ -13,6 +13,7 @@ is plumbing only.
 from __future__ import annotations
 
 import asyncio
+import re
 from dataclasses import dataclass
 
 from aiogram import Bot
@@ -122,21 +123,79 @@ def chunk_text(text: str, limit: int = TELEGRAM_MAX_CHARS) -> list[str]:
 
     Telegram rejects messages over 4096 chars; long agent output must be split.
     A single oversized line (no newline within ``limit``) is hard-split.
+
+    The split is TAG-AWARE, because the client sends with ``parse_mode="HTML"``
+    and every chunk is parsed as a standalone document. A naive character split
+    breaks a long formatted reply two ways: it can land inside ``<blockquote>``
+    (both halves become garbage) or between an open tag and its close (the first
+    chunk has an unclosed tag, the second a stray closing one) — and Telegram
+    rejects the whole message either way. So a cut never falls inside a tag, any
+    tags still open at the cut are closed at the end of the chunk, and reopened
+    at the start of the next. Text with no tags takes exactly the old path.
     """
     if len(text) <= limit:
         return [text] if text else []
     chunks: list[str] = []
     remaining = text
     while len(remaining) > limit:
-        window = remaining[:limit]
-        split = window.rfind("\n")
-        if split <= 0:
-            split = limit
-        chunks.append(remaining[:split])
-        remaining = remaining[split:].lstrip("\n")
+        cut, open_tags = _find_cut(remaining, limit)
+        closing = "".join(f"</{name}>" for name, _ in reversed(open_tags))
+        reopening = "".join(f"<{name}{attrs}>" for name, attrs in open_tags)
+        chunks.append(remaining[:cut] + closing)
+        remaining = reopening + remaining[cut:].lstrip("\n")
     if remaining:
         chunks.append(remaining)
     return chunks
+
+
+_TAG_RE = re.compile(r"<(/?)([a-zA-Z][-a-zA-Z0-9]*)([^<>]*)>")
+
+
+def _find_cut(text: str, limit: int) -> tuple[int, list[tuple[str, str]]]:
+    """Return (cut index, tags open there) for the best split at or under ``limit``.
+
+    Walks the text once, tracking the open-tag stack. Only offsets that sit
+    between tags are candidates, and a candidate must leave room for the closing
+    tags the chunk will need. A newline boundary wins when one is reachable;
+    otherwise the last in-budget offset is used (the old hard-split, minus the
+    risk of cutting a tag in half).
+    """
+    stack: list[tuple[str, str]] = []
+    best = (0, ())  # type: tuple[int, tuple[tuple[str, str], ...]]
+    best_newline: tuple[int, tuple[tuple[str, str], ...]] | None = None
+    i = 0
+    while i < len(text):
+        closing_cost = sum(len(name) + 3 for name, _ in stack)
+        if i > 0 and i + closing_cost <= limit:
+            best = (i, tuple(stack))
+            if text[i - 1] == "\n" and i - 1 > 0:
+                # Cut BEFORE the newline: the separator is consumed by the split,
+                # not carried into the chunk (the newline itself opens/closes
+                # nothing, so the tag stack is the same either side of it).
+                best_newline = (i - 1, tuple(stack))
+        elif i > limit:
+            break
+
+        match = _TAG_RE.match(text, i) if text[i] == "<" else None
+        if match is None:
+            i += 1
+            continue
+        is_close, name, attrs = match.group(1), match.group(2), match.group(3)
+        if is_close:
+            # Drop the matching open tag. An unbalanced close (nothing open, or
+            # a different tag) is left alone rather than guessed at.
+            if stack and stack[-1][0] == name:
+                stack.pop()
+        elif not attrs.rstrip().endswith("/"):
+            stack.append((name, attrs))
+        i = match.end()
+
+    cut, tags = best_newline or best
+    if cut == 0:
+        # Nothing splittable in budget (e.g. one enormous tag): fall back to a
+        # flat cut so the loop still terminates.
+        return limit, []
+    return cut, list(tags)
 
 
 # ---- client ------------------------------------------------------------

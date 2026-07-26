@@ -1,4 +1,5 @@
-# Secrets — never commit real credentials
+# Secrets — never commit. Real values live in .env here, or in the master env
+# file outside the repo (see .env.example).
 .env
 .env.*
 !.env.example
@@ -6,15 +7,7 @@
 # Python
 __pycache__/
 *.py[cod]
+.venv/
 *.egg-info/
 .pytest_cache/
 .ruff_cache/
-.mypy_cache/
-
-# Virtualenv / uv (uv.lock IS committed for reproducible installs)
-.venv/
-
-# Editor / OS
-.DS_Store
-.idea/
-.vscode/

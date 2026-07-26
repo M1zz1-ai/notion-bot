@@ -1,0 +1,38 @@
+# notion-bot systemd unit (TEMPLATE — not installed by this repo).
+#
+# One unit, four loops. The long-poll, the digest, the slot pinger and the brief
+# runner all live in this single process; there are no sibling timers to keep in
+# sync, and nothing writes to Notion from outside it.
+#
+# Install (Linux host):
+#   1. Edit User= and the WorkingDirectory/ExecStart paths below.
+#   2. Create .env (chmod 600) with the keys from .env.example.
+#   3. Ensure `notion-cli` is installed and on PATH for the service User —
+#      it owns Notion auth and the database ids. See README, "What you have to
+#      bring yourself".
+#   4. cp deploy/notion-bot.service /etc/systemd/system/
+#   5. systemctl daemon-reload && systemctl enable --now notion-bot
+#
+# Verify config and the notion-cli version floor before enabling:
+#   uv run python -m notion --check
+#
+# Send one digest and exit (if you would rather drive it from cron):
+#   uv run python -m notion --digest-once
+
+[Unit]
+Description=notion-bot (Telegram + a day that replans itself)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=CHANGE_ME
+WorkingDirectory=/home/CHANGE_ME/notion-bot
+ExecStart=/home/CHANGE_ME/.local/bin/uv run python -m notion
+Restart=on-failure
+RestartSec=10
+# The process survives transient OpenAI / Telegram / notion-cli errors on its
+# own (core.errors resilience); Restart=on-failure only covers a hard exit.
+
+[Install]
+WantedBy=multi-user.target

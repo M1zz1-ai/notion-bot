@@ -1,0 +1,329 @@
+<title>notion-bot — a day that replans itself</title>
+<style>
+  :root{
+    --ground:#0E0A14; --raised:#171122; --rule:#2E2440; --ghost:#3A2E52;
+    --ink:#EDE6DA; --dim:#9B93A8;
+    --violet:#B57BFF; --ok:#6FD3A0; --warn:#E9A93C; --fail:#FF6B5E;
+    --halo:rgba(181,123,255,.55);
+    --serif: ui-serif,"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
+    --sans: system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    --logo:url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAAA4CAYAAABNGP5yAAACnUlEQVR4nO2Zv2uTQRjHv/dwiEgIIiWUDh1LkQwZpEMHh4yliH+AQwcRB3EQKQ6OUqSDQxERcXAQZ5HSsYhDh+IQJIh0dAiSSYI4iFhJyl2eNs/7Xu79kYhPPhDeey93z/OG+z7PPe8F+Ie4WJ0/7n8m6ZOgHIJyDL+5c317IL+nbzdP9ZeJ8zkJv9LvIyjHhlaFU9QKJdmX4Enxe++bKdo+QTkE5ZgsEmp3Wr79/vCNiZ3/tXvk2+8OXpo8IRgjd2k+QTkE5dgsk+oLjeHNCo7PhgOXOGextoQ0CfPQSpPttdWbhZXLBOWY0ICYJFMGXBVVe2EsVcXULgTlEJRjYwZLyS0kwbzwhCv5l/qk2iIJgnIIyjExg6X9t+wQkEiqM2Kk7yAoh/Af0VdobJVIUA5BOZYfOd1o3hspH0OSer3/ZKTP2Tlbyp56icqA5OtqfX3s+bNDUQGCciw/aW13WtFvfrcvLY70PWdS5eGw/2VvcG0ur40dIm5Okq/PwjPxsOW1gVQ/EJRjpM6YvfRy55Nvr8/Nn1yPDsWxTg181bu9jm87ZfBkx1fd2edsn6ulPl+oOiQoh6Acm9eAJEsOl7BLjo3lpu+rVRd820l/d2llaJ+FU8hXFgjKISjHhAbE7Aibv7qp3z+kSuLpbp/e75+D66M/P1LthDI/Z7YLlJ0EP7R3fbtyZSN17DDdyZzoA3gW8vnxVaaXIQmCcgjKsXkNtA7aI32N1bpvrwXCIsQek7vztYX7vu/urQe57BOUQ1COiRkcqgl2XjzGJAjJfvbXWAQGGZiWEopceQdBOQTl2LKlWjk/59tbO8P9W4LXD0WVuiEIyiEoxxRpLLQ7uPd9TtLZQNHZPgmCckzZDvKqosjVliAoh6b9ANPmLwdU5PQTDxqcAAAAAElFTkSuQmCC");
+    --mono: ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Cascadia Mono","DejaVu Sans Mono",monospace;
+  }
+  @media (prefers-color-scheme:light){
+    :root{--ground:#F4F0E8;--raised:#EAE4D8;--rule:#CFC6B6;--ghost:#D3CABB;
+      --ink:#1A1420;--dim:#6A6070;--violet:#6B3FBF;--ok:#1E7A52;--warn:#9A6410;--fail:#C2382C;--halo:rgba(107,63,191,.30);}
+  }
+  :root[data-theme="dark"]{--ground:#0E0A14;--raised:#171122;--rule:#2E2440;--ghost:#3A2E52;
+    --ink:#EDE6DA;--dim:#9B93A8;--violet:#B57BFF;--ok:#6FD3A0;--warn:#E9A93C;--fail:#FF6B5E;--halo:rgba(181,123,255,.55);}
+  :root[data-theme="light"]{--ground:#F4F0E8;--raised:#EAE4D8;--rule:#CFC6B6;--ghost:#D3CABB;
+    --ink:#1A1420;--dim:#6A6070;--violet:#6B3FBF;--ok:#1E7A52;--warn:#9A6410;--fail:#C2382C;--halo:rgba(107,63,191,.30);}
+
+  body{background:var(--ground);color:var(--ink);font-family:var(--sans);
+    font-size:1.0625rem;line-height:1.6;-webkit-font-smoothing:antialiased;}
+  section{border-bottom:1px solid var(--rule);padding:104px 24px;
+    display:grid;grid-template-columns:88px minmax(0,62ch);gap:24px;
+    justify-content:center;align-content:start;}
+  .rail{font-family:var(--mono);font-size:.8125rem;text-transform:uppercase;
+    letter-spacing:.08em;color:var(--dim);line-height:1.5;}
+  .rail b{display:block;color:var(--violet);font-weight:400;}
+  .col{display:flex;flex-direction:column;gap:24px;min-width:0;}
+  h1{font-family:var(--serif);font-weight:400;font-size:clamp(2rem,6vw,3.4rem);
+    letter-spacing:-.015em;line-height:1.12;margin:0;text-wrap:balance;}
+  h2{font-family:var(--serif);font-weight:400;font-size:clamp(1.6rem,4.4vw,2.4rem);
+    letter-spacing:-.015em;line-height:1.15;margin:0;text-wrap:balance;}
+  p{margin:0;max-width:62ch;}
+  .dim{color:var(--dim);}
+  .lede{font-size:1.1875rem;}
+  figure{margin:0;overflow-x:auto;}
+  svg{display:block;max-width:100%;height:auto;}
+  figcaption{font-family:var(--mono);font-size:.75rem;text-transform:uppercase;
+    letter-spacing:.08em;color:var(--dim);margin-top:12px;}
+  .msg{border:1px solid var(--rule);background:var(--raised);padding:16px;
+    font-family:var(--mono);font-size:.8125rem;line-height:1.7;}
+  .msg .hd{color:var(--fail);text-transform:uppercase;letter-spacing:.08em;}
+  .msg .ok{color:var(--ok);}
+  .refuse{display:flex;flex-direction:column;gap:16px;}
+  .refuse div{border-left:2px solid var(--violet);padding-left:16px;}
+  .refuse b{font-weight:600;}
+  .refuse p{color:var(--dim);margin-top:4px;}
+  .stack{display:grid;gap:1px;background:var(--rule);border:1px solid var(--rule);}
+  .stack div{background:var(--raised);padding:12px 16px;
+    display:flex;justify-content:space-between;gap:16px;align-items:baseline;}
+  .stack span:last-child{font-family:var(--mono);font-size:.8125rem;color:var(--dim);
+    font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .note{font-family:var(--mono);font-size:.8125rem;color:var(--dim);
+    border:1px dashed var(--rule);padding:16px;}
+  a{color:var(--violet);}
+
+  /* Source art is 64x56. Every displayed size is an integer ratio of that
+     (32 = 1:2, 128 = 2:1) so pixelated rendering lands on whole pixels
+     instead of smearing the sprite. */
+  .mark{position:relative;display:block;width:32px;height:28px;flex:none;}
+  .mark::before{content:"";position:absolute;inset:-85%;border-radius:50%;opacity:.5;
+    background:radial-gradient(circle,var(--halo) 0%,transparent 70%);}
+  .mark::after{content:"";position:absolute;inset:0;
+    background:var(--logo) center/contain no-repeat;image-rendering:pixelated;}
+  .mark.big{width:128px;height:112px;}
+  .rail .mark{margin-bottom:14px;}
+    image-rendering:pixelated;opacity:.75;z-index:9;}
+  .ico{width:1em;height:1em;vertical-align:-.12em;margin-right:.45em;opacity:.8;}
+  @media (prefers-reduced-motion:no-preference){
+    section{animation:rise .32s ease-out both;}
+    @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+    .mark::before{animation:breathe 4.5s ease-in-out infinite;}
+    @keyframes breathe{0%,100%{opacity:.26;transform:scale(.88)}
+      50%{opacity:.72;transform:scale(1.12)}}
+  }
+  @media (max-width:640px){
+    section{grid-template-columns:minmax(0,1fr);padding:64px 20px;gap:16px;}
+    .rail{display:flex;gap:12px;align-items:center;}
+    .rail b{display:inline;}
+    .rail .mark{margin-bottom:0;}
+  }
+</style>
+
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="i-tg" viewBox="0 0 24 24"><path fill="currentColor" d="M21.8 3.3 2.9 10.6c-1 .4-1 1.8 0 2.2l4.6 1.6 1.8 5.5c.3.9 1.4 1.1 2 .4l2.5-2.6 4.7 3.5c.7.5 1.7.1 1.9-.7l3.3-15.5c.2-1-.8-1.9-1.9-1.7ZM8.9 14.3l9.3-6.7-7.6 8.1-.3 3.2-1.4-4.6Z"/></symbol>
+<symbol id="i-nt" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.7" d="M3.6 4.4 15 3.2c.9-.1 1.4.1 1.9.6l3 2.6c.4.4.6.7.6 1.3v12c0 .8-.4 1.3-1.3 1.4L6.4 21.9c-.8.1-1.3-.1-1.8-.7l-2-2.6c-.4-.6-.6-1-.6-1.6V5.7c0-.7.3-1.2 1.6-1.3Z"/><path fill="currentColor" d="M8.2 8.3v7.2l1.5-.1V11l3.2 4.3 1.5-.1V8l-1.5.1v4.2L9.8 8.2l-1.6.1Z"/></symbol>
+<symbol id="i-py" viewBox="0 0 24 24"><path fill="currentColor" d="M11.9 1.5c-2.6 0-4.4.8-4.4 3v2.3h4.5v.8H5.7c-2.2 0-4.1 1.3-4.1 4.5s1.7 4.6 3.9 4.6h1.6v-2.8c0-2.4 2.1-4.5 4.5-4.5h4.5c2 0 3.6-1.6 3.6-3.6V4.5c0-1.9-1.6-2.6-3.6-2.9-1.4-.1-2.8-.1-4.2-.1Zm-2.4 2c.5 0 .9.4.9.9s-.4.9-.9.9-.9-.4-.9-.9.4-.9.9-.9Z"/><path fill="currentColor" opacity=".55" d="M12.1 22.5c2.6 0 4.4-.8 4.4-3v-2.3H12v-.8h6.3c2.2 0 4.1-1.3 4.1-4.5s-1.7-4.6-3.9-4.6h-1.6v2.8c0 2.4-2.1 4.5-4.5 4.5H7.9c-2 0-3.6 1.6-3.6 3.6v1.3c0 1.9 1.6 2.6 3.6 2.9 1.4.1 2.8.1 4.2.1Zm2.4-2c-.5 0-.9-.4-.9-.9s.4-.9.9-.9.9.4.9.9-.4.9-.9.9Z"/></symbol>
+<symbol id="i-cl" viewBox="0 0 24 24"><g stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 3.2v17.6M3.2 12h17.6M5.8 5.8l12.4 12.4M18.2 5.8 5.8 18.2"/></g></symbol>
+</defs></svg>
+
+<section>
+  <div class="rail"><b>00:01</b>notion-bot</div>
+  <div class="col">
+    <span class="mark big"></span>
+    <h1>17 tasks a day became 187 in two weeks.</h1>
+    <p class="lede">The generator cloned every unfinished task instead of moving it.
+    The tracker ended up holding 1,234 clones — up to 66 copies of a single task.
+    A list of 187 items cannot be worked, so it stops being opened.</p>
+    <p class="dim">notion-bot replans one person's day every night from what actually
+    happened, confirms the plan before committing it, and refuses to tell you it did
+    something it didn't.</p>
+  </div>
+</section>
+
+<section>
+  <div class="rail"><span class="mark"></span><b>01</b>postmortem</div>
+  <div class="col">
+    <h2>Compounding, drawn to scale</h2>
+    <p class="dim">Each morning every open task was re-created and the original was
+    left open. Nothing below is marked wrong — the illegibility is the failure.</p>
+    <figure>
+      <svg viewBox="0 0 620 200" role="img" aria-label="One task stamped repeatedly until unreadable, counts rising to 187">
+        <g font-family="ui-monospace,monospace" font-size="10" fill="currentColor">
+          <text x="0" y="14" opacity=".6">DAY 1 · 17</text>
+          <text x="240" y="14" opacity=".6">DAY 7 · 78</text>
+          <text x="470" y="14" opacity=".6">DAY 14 · 187</text>
+        </g>
+        <g stroke="currentColor" fill="none" stroke-width="1">
+          <rect x="0" y="30" width="150" height="26" opacity=".85"/>
+          <g opacity=".8"><rect x="243" y="30" width="150" height="26"/><rect x="246" y="33" width="150" height="26"/>
+            <rect x="249" y="36" width="150" height="26"/><rect x="252" y="39" width="150" height="26"/>
+            <rect x="255" y="42" width="150" height="26"/></g>
+          <g opacity=".52"><rect x="440" y="30" width="150" height="26"/><rect x="443" y="33" width="150" height="26"/>
+            <rect x="446" y="36" width="150" height="26"/><rect x="449" y="39" width="150" height="26"/>
+            <rect x="452" y="42" width="150" height="26"/><rect x="455" y="45" width="150" height="26"/>
+            <rect x="458" y="48" width="150" height="26"/><rect x="461" y="51" width="150" height="26"/>
+            <rect x="464" y="54" width="150" height="26"/><rect x="467" y="57" width="150" height="26"/>
+            <rect x="470" y="60" width="150" height="26"/><rect x="473" y="63" width="150" height="26"/>
+            <rect x="476" y="66" width="150" height="26"/><rect x="479" y="69" width="150" height="26"/></g>
+        </g>
+        <g font-family="ui-monospace,monospace" font-size="9" fill="currentColor" opacity=".9">
+          <text x="10" y="47">Draft release notes</text><text x="253" y="47">Draft release notes</text>
+          <text x="450" y="47">Draft release notes</text>
+        </g>
+        <line x1="0" y1="120" x2="620" y2="120" stroke="var(--rule)" stroke-width="1"/>
+        <path d="M0 118 L200 116 L340 100 L460 66 L560 20 L620 4" fill="none"
+          stroke="var(--fail)" stroke-width="2" transform="translate(0,60)"/>
+        <text x="0" y="196" font-family="ui-monospace,monospace" font-size="10"
+          fill="currentColor" opacity=".6">TASK COUNT PER DAY</text>
+      </svg>
+      <figcaption>the only diagram that spends red</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section>
+  <div class="rail"><span class="mark"></span><b>02</b>the fix</div>
+  <div class="col">
+    <h2>A row moves. It never clones.</h2>
+    <p class="dim">An unfinished task keeps one identity across every replan. The row
+    that leaves a slot leaves nothing behind but an empty slot.</p>
+    <figure>
+      <svg viewBox="0 0 620 190" role="img" aria-label="One node translating down a time axis, dotted ghost left at each vacated slot">
+        <defs><linearGradient id="g1" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="var(--rule)"/><stop offset="1" stop-color="var(--ink)"/></linearGradient>
+          <marker id="a1" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+          <path d="M0 0 L7 3.5 L0 7 z" fill="var(--ink)"/></marker></defs>
+        <g font-family="ui-monospace,monospace" font-size="10" fill="currentColor" opacity=".6">
+          <text x="0" y="12">MON</text><text x="200" y="12">TUE</text><text x="400" y="12">WED</text>
+        </g>
+        <g stroke="var(--rule)" stroke-width="1" fill="none">
+          <line x1="0" y1="22" x2="620" y2="22"/><line x1="0" y1="150" x2="620" y2="150"/>
+        </g>
+        <g stroke="var(--ghost)" stroke-width="1" stroke-dasharray="3 4" fill="none">
+          <rect x="0" y="44" width="150" height="26"/><rect x="200" y="76" width="150" height="26"/>
+        </g>
+        <rect x="400" y="108" width="150" height="26" fill="var(--raised)"
+          stroke="currentColor" stroke-width="1"/>
+        <text x="410" y="125" font-family="ui-monospace,monospace" font-size="9"
+          fill="currentColor">Draft release notes</text>
+        <path d="M150 57 L200 89" stroke="url(#g1)" stroke-width="2" fill="none"/>
+        <path d="M350 89 L400 121" stroke="url(#g1)" stroke-width="2" fill="none" marker-end="url(#a1)"/>
+        <text x="0" y="180" font-family="ui-monospace,monospace" font-size="10"
+          fill="currentColor" opacity=".6">ONE ROW · ONE IDENTITY · COUNT UNCHANGED</text>
+      </svg>
+      <figcaption>direction reads by luminance, not arrowheads</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section>
+  <div class="rail"><span class="mark"></span><b>03</b>the loop</div>
+  <div class="col">
+    <h2>The plan writes itself, on a schedule</h2>
+    <p class="dim">Four beats, and the third is the one that matters: silence is a
+    decision, not a hole in the day.</p>
+    <div class="stack">
+      <div><span><b>00:01</b> &nbsp;drafts tomorrow from what actually happened</span><span>scheduled</span></div>
+      <div><span><b>00:03</b> &nbsp;shows the digest, asks two questions</span><span>Telegram</span></div>
+      <div><span><b>10:00</b> &nbsp;you said nothing — commits the draft as-is</span><span>no model</span></div>
+      <div><span><b>11:00</b> &nbsp;the day exists as a card, slot by slot</span><span>no model</span></div>
+    </div>
+    <p class="dim">Because of 10:00, <b>11:00 always has a plan</b>. That is a
+    guarantee, not a chat loop.</p>
+  </div>
+</section>
+
+<section>
+  <div class="rail"><span class="mark"></span><b>04</b>structure</div>
+  <div class="col">
+    <h2>One process, four loops</h2>
+    <p class="dim">A single systemd unit runs long-polling and three timers side by
+    side. Every write to Notion — from the model, from a timer, from a draft — leaves
+    through one door, so validation and timezone stamping happen in exactly one place.</p>
+    <figure>
+      <svg viewBox="0 0 620 400" role="img" aria-label="Architecture: telegram and a planner brief enter one process running four loops; all writes exit through notion-cli to Notion">
+        <defs><linearGradient id="gv" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="var(--rule)"/><stop offset="1" stop-color="var(--ink)"/></linearGradient>
+          <marker id="av" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+          <path d="M0 0 L7 3.5 L0 7 z" fill="var(--ink)"/></marker></defs>
+
+        <g font-family="ui-monospace,monospace" font-size="9" fill="currentColor">
+          <use href="#i-tg" x="0" y="4" width="12" height="12" opacity=".85"/><text x="18" y="14" opacity=".85">TELEGRAM</text>
+          <line x1="0" y1="20" x2="88" y2="20" stroke="currentColor" stroke-width="1"/>
+          <use href="#i-cl" x="452" y="4" width="12" height="12" opacity=".85"/><text x="470" y="14" opacity=".85">PLANNER BRIEF</text>
+          <line x1="452" y1="20" x2="560" y2="20" stroke="currentColor" stroke-width="1"/>
+          <text x="452" y="34" opacity=".5">Claude Code, on the Mac</text>
+
+          <rect x="0" y="58" width="620" height="128" fill="none" stroke="var(--violet)" stroke-width="1"/>
+          <use href="#i-py" x="10" y="64" width="12" height="12" color="var(--violet)"/><text x="28" y="74" fill="var(--violet)">python -m notion · systemd</text>
+
+          <g stroke="currentColor" stroke-width="1" fill="var(--raised)">
+            <rect x="14" y="88" width="138" height="42"/><rect x="166" y="88" width="138" height="42"/>
+            <rect x="318" y="88" width="138" height="42"/><rect x="470" y="88" width="136" height="42"/>
+          </g>
+          <text x="24" y="105">long-poll</text><text x="24" y="120" opacity=".55">chat + voice</text>
+          <text x="176" y="105">digest</text><text x="176" y="120" opacity=".55">11:00, wall clock</text>
+          <text x="328" y="105">pinger</text><text x="328" y="120" opacity=".55">60 s tick</text>
+          <text x="480" y="105">brief</text><text x="480" y="120" opacity=".55">announce · commit</text>
+
+          <g stroke="currentColor" stroke-width="1" fill="var(--raised)">
+            <rect x="14" y="148" width="138" height="26"/><rect x="470" y="148" width="136" height="26"/>
+          </g>
+          <text x="24" y="165">openai_agent</text><text x="480" y="165">redis ledger</text>
+          <text x="24" y="186" opacity=".5">11 tools · Whisper</text>
+          <text x="470" y="186" opacity=".5">announced · answered · pinged</text>
+
+          <rect x="166" y="228" width="290" height="34" fill="var(--raised)"
+            stroke="var(--violet)" stroke-width="2"/>
+          <text x="178" y="249" fill="var(--violet)">notion-cli — the single write path</text>
+          <text x="166" y="278" opacity=".5">enum validation · offset re-stamping · DoD into page body</text>
+
+          <use href="#i-nt" x="176" y="320" width="12" height="12" opacity=".85"/><text x="194" y="330" opacity=".85">NOTION</text>
+          <line x1="176" y1="340" x2="266" y2="340" stroke="currentColor" stroke-width="1"/>
+          <text x="176" y="356" opacity=".5">tasks · projects · habits</text>
+          <text x="14" y="330" opacity=".85">OPENAI</text>
+          <line x1="14" y1="336" x2="76" y2="336" stroke="currentColor" stroke-width="1"/>
+          <text x="14" y="352" opacity=".5">chat only</text>
+        </g>
+
+        <g stroke="url(#gv)" stroke-width="2" fill="none" marker-end="url(#av)">
+          <path d="M44 24 L44 88"/><path d="M506 38 L506 88"/>
+          <path d="M83 174 L83 228"/><path d="M235 130 L235 228"/><path d="M387 130 L387 228"/>
+          <path d="M538 174 L538 262 L456 262"/>
+          <path d="M300 262 L300 318"/>
+        </g>
+        <path d="M60 174 L44 318" stroke="var(--rule)" stroke-width="1" fill="none"/>
+      </svg>
+      <figcaption>every write leaves through one door</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section>
+  <div class="rail"><span class="mark"></span><b>05</b>refusals</div>
+  <div class="col">
+    <h2>What it refuses to do</h2>
+    <p class="dim">Same discipline that fixed the cloning bug, applied before it can
+    happen again. Each of these ends in a stop, never a silent write.</p>
+    <div class="refuse">
+      <div><b>It will not commit a plan you were not shown.</b>
+        <p>Briefs are identified by a hash of their content; the commit is gated on
+        that exact brief having been announced. Shown and written cannot diverge.</p></div>
+      <div><b>It will not create a project.</b>
+        <p>A near-miss name would create a second project instead of editing the
+        first, splitting progress across two rows with nothing visibly wrong.</p></div>
+      <div><b>It will not call an empty day a rest day.</b>
+        <p>"Empty on purpose" and "the planner never ran" are different messages.</p></div>
+    </div>
+    <div class="msg">
+      <div class="hd">🚨 THE PLANNER DID NOT RUN.</div>
+      <div>This is NOT a day off, this is a failure.</div>
+      <div class="ok">— vs —</div>
+      <div>Empty on purpose — a rest day. 🎉</div>
+    </div>
+    <figcaption>two states that every other scheduler renders identically</figcaption>
+  </div>
+</section>
+
+<section>
+  <div class="rail"><span class="mark"></span><b>06</b>memory</div>
+  <div class="col">
+    <h2>A restart is not an event</h2>
+    <p class="dim">Reminders are keyed by task <em>and</em> slot, not by task. Restart
+    the process and nothing re-sends; move a task to a new hour and its reminder arms
+    again. What was already announced, already answered and already committed is
+    remembered outside the process.</p>
+    <div class="stack">
+      <div><span>Ping key</span><span>page_id + slot</span></div>
+      <div><span>Slot instant</span><span>normalised to UTC</span></div>
+      <div><span>Brief identity</span><span>content hash</span></div>
+      <div><span>Redis unavailable</span><span>degrades to at-most-once</span></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="rail"><span class="mark"></span><b>07</b>build</div>
+  <div class="col">
+    <h2>197 tests, zero network calls</h2>
+    <p class="dim">The count is not the claim — determinism is. Nothing in the suite
+    touches Telegram, Notion or OpenAI, so CI is green without a single secret.</p>
+    <div class="stack">
+      <div><span><svg class="ico"><use href="#i-py"/></svg>Python 3.12 · aiogram · systemd</span><span>3,525 lines</span></div>
+      <div><span>OpenAI tool-calling</span><span>11 tools</span></div>
+      <div><span><svg class="ico"><use href="#i-tg"/></svg>Telegram · Whisper voice · redis ledgers</span><span>—</span></div>
+      <div><span>Bot suite</span><span>197 tests</span></div>
+      <div><span><svg class="ico"><use href="#i-nt"/></svg>notion-cli, its single write path</span><span>104 tests</span></div>
+      <div><span>Network calls under test</span><span>0</span></div>
+    </div>
+    <p class="note">Honest scope: this is one person's tool, wired to one Notion
+    workspace's database ids. A stranger cannot clone and run it today. Read it as a
+    reference implementation of the pattern — idempotent replanning, content-hash
+    gating, human-in-the-loop commits — not as an app to install.</p>
+  </div>
+</section>
