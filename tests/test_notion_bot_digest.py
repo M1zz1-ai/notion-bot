@@ -51,10 +51,16 @@ def test_slot_rendered_in_local_time_not_utc() -> None:
     assert "16:00" in fmt([task(date="2026-07-26T15:00:00+00:00")])
 
 
-def test_project_and_dod_are_shown() -> None:
+def test_project_and_dod_are_deliberately_absent() -> None:
+    """Metadata is about a task, not a reason to do it at 15:00.
+
+    Both used to be rendered. They were removed on purpose in 2026-07: at eight
+    tasks a day the brackets and the DoD lines were most of the message, and the
+    digest is read on a phone. Notion still has them, one tap away.
+    """
     msg = fmt([task(project="M1zz1 OS", dod="45 tests green")])
-    assert "M1zz1 OS" in msg
-    assert "DoD: 45 tests green" in msg
+    assert "M1zz1 OS" not in msg
+    assert "DoD" not in msg
 
 
 def test_date_only_tasks_go_under_no_time_set() -> None:
@@ -73,9 +79,40 @@ def test_in_progress_is_marked_on_the_axis() -> None:
     assert "⚡" in msg and "15:00" in msg
 
 
-def test_type_and_effort_labelled() -> None:
+def test_type_and_effort_are_deliberately_absent() -> None:
     msg = fmt([task("A", type=["IT"], effort=["Low"])])
-    assert "IT" in msg and "Low" in msg
+    assert "(IT" not in msg and "Low" not in msg
+
+
+def test_header_carries_a_dotted_date() -> None:
+    assert "📅 <b><u>26.07.2026 Morning Digest</u></b>" in fmt([task("A")])
+
+
+def test_each_task_is_its_own_stanza() -> None:
+    """A blank line between rows — the reason the rewrite happened at all."""
+    msg = fmt([task("First"), task("Second", date="2026-07-26T16:00:00+00:00")])
+    # Asserted structurally rather than against two literal clock times: the
+    # fixture renders in a zone offset from UTC, and the property under test is
+    # the blank line, not the hour.
+    assert "<i>First</i>\n\n🎯 " in msg
+    assert msg.count("\n\n🎯 ") == 2
+
+
+def test_done_block_is_copyable() -> None:
+    """<pre> so the finished list can be pasted somewhere, not retyped."""
+    msg = fmt([task("Shipped", status="Done")])
+    assert "<pre>✅ Done (1)\n • Shipped</pre>" in msg
+
+
+def test_a_title_cannot_inject_markup() -> None:
+    """Titles come from Notion and were previously interpolated raw."""
+    msg = fmt([task("<b>not bold</b>", status="Done")])
+    assert "&lt;b&gt;not bold&lt;/b&gt;" in msg
+    assert "<b>not bold</b>" not in msg
+
+
+def test_total_is_underlined() -> None:
+    assert "<b><u>Total: 1 task(s)</u></b>" in fmt([task("A")])
 
 
 def test_unknown_status_is_not_dropped() -> None:

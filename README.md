@@ -52,9 +52,15 @@ One systemd unit, four loops running side by side:
 
 - **long-poll** — chat and voice. Whisper transcribes, an OpenAI agent picks from
   11 typed tools, and the CLI executes. The model never sees a Notion token.
-- **digest** — at a wall-clock hour (default 11:00), the day laid out slot by slot.
+- **digest** — at a wall-clock hour (default 11:00), the day laid out slot by slot:
+  one task per stanza, time and title and nothing else. Project, type and effort
+  used to be printed next to every row; at eight tasks a day the brackets were
+  most of the message, and they are one tap away in Notion. Finished work
+  collapses into a single copyable block instead of eight more lines.
 - **pinger** — a 60-second tick that reminds you at the slot, keyed by
-  `page_id + slot` so a restart re-sends nothing and a reschedule re-arms.
+  `page_id + slot` so a restart re-sends nothing and a reschedule re-arms. The
+  ping is the digest's own line for that task, character for character — hours
+  later it should read as the morning plan coming back, not as a second bot.
 - **brief runner** — consumes one plan draft per day, announces it, and commits it
   if you have not answered by the fallback hour.
 
@@ -106,13 +112,14 @@ Everything below runs on a fresh clone with nothing configured:
 uv sync --dev && uv run pytest -q && uv run ruff check .
 ```
 
-306 tests, **zero network calls**. Telegram, Notion and OpenAI are all faked at
+339 tests, **zero network calls**. Telegram, Notion and OpenAI are all faked at
 the boundary, so CI is green without a single secret — and so is your laptop.
 That is deliberate: the count is not the claim, the determinism is.
 
-(The case study says 197. That is this repo's notion-specific subset —
-`tests/test_notion*.py` — counted in the monorepo it is exported from. The other
-109 cover the shared `core/` modules that came along with it.)
+(The case study page says 197. That snapshot predates the August refresh; the
+notion-specific subset it counts — `tests/test_notion*.py`, counted identically
+in the monorepo this is exported from — is 207 today. The other 132 cover the
+shared `core/` modules that came along with it.)
 
 What you can exercise dry: the slot arithmetic and DST handling
 (`notion/timeslots.py`), the brief identity hash and the announce/commit gating

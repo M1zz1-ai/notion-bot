@@ -17,6 +17,14 @@ worst kind of reliability for a crash. Here escaping is unconditional and
 happens before any tag is introduced, so the output cannot carry an unescaped
 metacharacter no matter what the model wrote.
 
+Malformed NESTING is the same crash wearing a different hat: Telegram rejects
+``<b><i>x</b></i>`` with the very same ``can't parse entities`` and drops the
+whole message. Markdown emphasis is not a grammar — a task title carrying an
+unbalanced ``**``, interpolated into a ``*…*`` stanza, is enough to interleave —
+so the converter checks its own output before returning it and falls back to
+plain escaped text when the nesting is broken. Same tradeoff as above: a reply
+that arrives with visible asterisks beats a reply the user never sees.
+
 Telegram's HTML is NOT a subset of HTML you can guess at — it is a fixed tag
 list, verified against aiogram 3.29's entity decorator (``aiogram.utils.
 text_decorations.HtmlDecoration``), which is generated from the Bot API entity
@@ -47,11 +55,20 @@ _QUOTE_RE = re.compile(r"^\s*&gt;[ \t]?(.*)$")
 _RULE_RE = re.compile(r"^\s*(?:-{3,}|\*{3,}|_{3,})\s*$")
 
 _LINK_RE = re.compile(r"\[([^\]\n]+)\]\(([^)\s]+)\)")
+# `***x***` must be matched BEFORE `**x**`: left to the bold and italic passes it
+# produces the interleaved `<b><i>x</b></i>`, which Telegram rejects outright
+# ("can't parse entities") and so drops the whole message.
+_BOLD_ITALIC_STAR_RE = re.compile(r"\*\*\*(?=\S)(.+?)(?<=\S)\*\*\*", re.DOTALL)
 _BOLD_STAR_RE = re.compile(r"\*\*(?=\S)(.+?)(?<=\S)\*\*", re.DOTALL)
 _BOLD_UNDER_RE = re.compile(r"(?<![\w_])__(?=\S)(.+?)(?<=\S)__(?![\w_])", re.DOTALL)
 _STRIKE_RE = re.compile(r"~~(?=\S)(.+?)(?<=\S)~~", re.DOTALL)
 _ITALIC_STAR_RE = re.compile(r"(?<!\*)\*(?=\S)([^*\n]+?)(?<=\S)\*(?!\*)")
 _ITALIC_UNDER_RE = re.compile(r"(?<![\w_])_(?=\S)([^_\n]+?)(?<=\S)_(?![\w_])")
+
+# Matches every tag the module can emit: no attribute value reaching this point
+# can contain a raw `>` (step 2 escapes it, and hrefs get their quotes escaped
+# too), so `[^>]*` cannot run past the tag it belongs to.
+_EMITTED_TAG_RE = re.compile(r"<(/?)([a-zA-Z][-a-zA-Z0-9]*)(?:\s[^>]*)?>")
 
 BULLET = "•"
 
@@ -61,7 +78,8 @@ def to_telegram_html(text: str) -> str:
 
     Supported input: ``# heading`` (any level), ``- ``/``* ``/``+ `` bullets,
     ``> `` quotes, ``**bold**``, ``__bold__``, ``*italic*``, ``_italic_``,
-    ``~~strike~~``, ``[label](url)``, `````code````` spans and ``` fences.
+    ``***bold italic***``, ``~~strike~~``, ``[label](url)``, `````code`````
+    spans and ``` fences.
     Everything else is passed through as escaped literal text.
 
     The output is safe to send with ``parse_mode="HTML"`` for ANY input,
@@ -76,6 +94,7 @@ def to_telegram_html(text: str) -> str:
     # a chat reply, so dropping them is lossless in practice and closes the only
     # route by which model output could forge a placeholder.
     text = text.replace(_SENTINEL, "")
+    source = text
 
     # 1. Code first: its contents must be escaped but NOT interpreted, so it is
     #    lifted out before any Markdown pass can see a `*` or `_` inside it.
@@ -104,7 +123,28 @@ def to_telegram_html(text: str) -> str:
         if expanded == rendered:
             break
         rendered = expanded
+
+    # 5. Last line of defence. Emphasis markers are not a grammar, so some
+    #    inputs convert to interleaved tags no single pass can prevent
+    #    (`***bold** start*`, four-star runs). Telegram rejects those messages
+    #    whole, so a rendering we cannot vouch for is discarded in favour of the
+    #    plain escaped text — which is still escaped, and therefore still sends.
+    if not _is_well_nested(rendered):
+        return html.escape(source, quote=False)
     return rendered
+
+
+def _is_well_nested(rendered: str) -> bool:
+    """True when every emitted tag closes in the order it was opened."""
+    stack: list[str] = []
+    for match in _EMITTED_TAG_RE.finditer(rendered):
+        closing, name = match.group(1), match.group(2)
+        if closing:
+            if not stack or stack.pop() != name:
+                return False
+        else:
+            stack.append(name)
+    return not stack
 
 
 def _stash(stash: list[str], rendered: str) -> str:
@@ -162,6 +202,7 @@ def _render_inline(text: str, stash: list[str]) -> str:
     ``<i>`` tag in the middle of the attribute and be rejected by Telegram.
     """
     text = _LINK_RE.sub(lambda m: _render_link(m, stash), text)
+    text = _BOLD_ITALIC_STAR_RE.sub(r"<b><i>\1</i></b>", text)
     text = _BOLD_STAR_RE.sub(r"<b>\1</b>", text)
     text = _BOLD_UNDER_RE.sub(r"<b>\1</b>", text)
     text = _STRIKE_RE.sub(r"<s>\1</s>", text)

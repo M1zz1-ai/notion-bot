@@ -89,8 +89,10 @@ async def test_fires_inside_the_window(at_15_05) -> None:
     tg, clock = FakeTg(), [at_15_05]
     await build(tg, FakeState(), [task()], clock).tick()
     assert len(tg.texts) == 1
-    assert "15:00" in tg.texts[0] and "Ship the pinger" in tg.texts[0]
-    assert "M1zz1 OS" in tg.texts[0]
+    # Identical in shape to the digest's stanza: a ping is that row of the
+    # morning plan coming back, not a second bot with its own formatting.
+    assert tg.texts[0] == "🎯 <b><i>15:00</i></b> <i>Ship the pinger</i>"
+    assert "M1zz1 OS" not in tg.texts[0]  # project dropped, same as the digest
 
 
 async def test_does_not_fire_before_the_slot(at_15_05) -> None:
@@ -278,6 +280,20 @@ async def test_no_rollup_when_nothing_was_missed(at_15_05) -> None:
     tg, clock = FakeTg(), [at_15_05 - timedelta(hours=2)]
     await build(tg, FakeState(), [task()], clock).tick()
     assert tg.texts == []
+
+
+async def test_a_rollup_title_cannot_inject_markup(at_15_05) -> None:
+    """The roll-up goes out with parse_mode=HTML, same as the ping does.
+
+    Titles come from Notion and can be LLM- or user-authored, so a raw one
+    would either render as real markup or make Telegram reject the send.
+    """
+    tg, clock = FakeTg(), [at_15_05 + timedelta(hours=5)]
+    tasks = [task("p1", '<a href="http://evil">click</a>', date="2026-07-26T11:00:00")]
+    await build(tg, FakeState(), tasks, clock).tick()
+    assert len(tg.texts) == 1
+    assert "&lt;a href=" in tg.texts[0]
+    assert '<a href="http://evil">' not in tg.texts[0]
 
 
 # ---- polling budget ----------------------------------------------------

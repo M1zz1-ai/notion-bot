@@ -411,6 +411,39 @@ def test_build_system_asks_for_markdown_not_html() -> None:
     assert "write Markdown, never HTML" in sys
 
 
+def test_build_system_prescribes_the_digest_stanza_layout() -> None:
+    # Conversational task lists must look like the morning digest
+    # (notion/digest.py format_digest), not like a flat wall of "- " lines.
+    sys = tools.build_system(today=date(2026, 7, 25))
+    assert "TASK LISTS" in sys
+    assert "🎯 **_HH:MM_** *Task title*" in sys
+    assert "BLANK LINE between stanzas" in sys
+    assert "⚡" in sys  # In progress marker
+    assert "Без времени" in sys
+    assert "✅ Done (2)" in sys  # the Done fenced block
+    assert "Итого: 3 задачи" in sys
+
+
+def test_build_system_keeps_non_list_answers_short() -> None:
+    sys = tools.build_system(today=date(2026, 7, 25))
+    assert "EVERYTHING ELSE" in sys
+    assert "no total line" in sys
+
+
+def test_build_system_bans_triple_star_emphasis() -> None:
+    # `***x***` converts to interleaved <b><i>x</b></i>, which Telegram rejects.
+    sys = tools.build_system(today=date(2026, 7, 25))
+    assert "**_bold italic_**" in sys
+    assert "three stars" in sys
+
+
+def test_build_system_keeps_the_old_conciseness_rules() -> None:
+    sys = tools.build_system(today=date(2026, 7, 25))
+    assert "Reply concisely in the user's language" in sys
+    assert "`code` for page ids" in sys
+    assert "Do NOT write <b>, <i> or any other HTML tag" in sys
+
+
 def test_build_system_documents_habits() -> None:
     sys = tools.build_system(today=date(2026, 6, 19))
     # Habits are a SEPARATE database with their own tools — the model must not

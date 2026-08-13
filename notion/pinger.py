@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import asyncio
 import datetime as dt
+import html
 import logging
 from collections.abc import Callable
 from typing import Any, Protocol
@@ -186,13 +187,15 @@ class Pinger:
     # ---- messages ------------------------------------------------------
 
     def _format_ping(self, slot: dt.datetime, task: dict[str, Any]) -> str:
-        """One reminder (user-facing Telegram text)."""
-        title = task.get("title") or "Untitled"
-        lines = [f"⏰ <b>{hhmm(slot, self._tz)}</b> — {title}"]
-        project = task.get("project")
-        if project:
-            lines.append(f"Project: {project}")
-        return "\n".join(lines)
+        """One reminder, in the same shape the digest uses for the same task.
+
+        Deliberately a single line, and deliberately identical to the digest's
+        stanza: a ping arriving hours later should read as that row of the
+        morning plan coming back, not as a second, differently-formatted bot.
+        The project line was dropped for the same reason it left the digest.
+        """
+        title = html.escape(task.get("title") or "Untitled", quote=False)
+        return f"🎯 <b><i>{hhmm(slot, self._tz)}</i></b> <i>{title}</i>"
 
     async def _send_rollup(self, stale: list[_Slot]) -> None:
         """Announce missed slots ONCE, as a summary — never as late pings.
@@ -204,7 +207,10 @@ class Pinger:
         if not stale:
             return
         ordered = sorted(stale, key=lambda item: item[0])
-        titles = ", ".join(task.get("title") or "Untitled" for _, task, _key in ordered)
+        titles = ", ".join(
+            html.escape(task.get("title") or "Untitled", quote=False)
+            for _, task, _key in ordered
+        )
         text = (
             f"⚠️ Slots missed today: {len(stale)} — {titles}.\n"
             "No separate reminders will be sent for them."

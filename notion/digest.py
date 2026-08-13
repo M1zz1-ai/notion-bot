@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import asyncio
 import datetime as dt
+import html
 import logging
 from typing import Any, Protocol
 
@@ -62,24 +63,19 @@ class _StateLike(Protocol):
     def last_json(self, *parts: str, default: Any = ...) -> Any: ...
 
 
-def _label(task: dict[str, Any]) -> str:
-    """Render one task as ``Title [Project] (Type | Effort)`` (parts omitted if empty)."""
-    title = task.get("title") or "Untitled"
-    project = task.get("project")
-    types = ", ".join(task.get("type") or [])
-    effort = ", ".join(task.get("effort") or [])
-    tag = " | ".join(p for p in (types, effort) if p)
-    line = f"{title} [{project}]" if project else title
-    return f"{line} ({tag})" if tag else line
+def _daystamp(day: dt.date) -> str:
+    """``26.07.2026`` — the form Bogdan reads a date in, not ISO."""
+    return day.strftime("%d.%m.%Y")
 
 
-def _lines_for(task: dict[str, Any], prefix: str) -> list[str]:
-    """A task's display lines: its label, plus its DoD when one is known."""
-    lines = [f"{prefix}{_label(task)}"]
-    dod = task.get("dod")
-    if dod:
-        lines.append(f"    DoD: {dod}")
-    return lines
+def _title(task: dict[str, Any]) -> str:
+    """The task's title, escaped for Telegram HTML.
+
+    Project, type and effort used to be appended here. They are metadata about a
+    task, not a reason to do it at 15:00, and at eight tasks a day the brackets
+    were most of the message. They live in Notion, which is one tap away.
+    """
+    return html.escape(task.get("title") or "Untitled", quote=False)
 
 
 def format_digest(
@@ -108,7 +104,7 @@ def format_digest(
         tail = "No tasks scheduled for today."
         if planner_ran is not False:
             tail += " Empty on purpose — a rest day. 🎉"
-        return "\n".join([*head, "☀️ <b>Morning digest</b>", "", tail])
+        return "\n".join([*head, f"📅 <b><u>{_daystamp(day)} Morning Digest</u></b>", "", tail])
 
     timed: list[tuple[dt.datetime, dict[str, Any]]] = []
     untimed: list[dict[str, Any]] = []
@@ -123,22 +119,23 @@ def format_digest(
         else:
             timed.append((slot, task))
 
-    lines = [f"☀️ <b>Morning digest — {day}</b>", ""]
+    lines = [f"📅 <b><u>{_daystamp(day)} Morning Digest</u></b>"]
+    # One task per stanza, separated by a blank line. A dense list of eight
+    # items reads as a wall and gets skimmed; this is the whole point of the
+    # rewrite, so the spacing is deliberate and not decoration.
     for slot, task in sorted(timed, key=lambda pair: pair[0]):
-        mark = "⚡" if (task.get("status") or "") == IN_PROGRESS else "⏰"
-        lines += _lines_for(task, f"{mark} <b>{hhmm(slot, tz)}</b> — ")
+        mark = "⚡" if (task.get("status") or "") == IN_PROGRESS else "🎯"
+        lines += ["", f"{mark} <b><i>{hhmm(slot, tz)}</i></b> <i>{_title(task)}</i>"]
     if untimed:
-        if timed:
-            lines.append("")
-        lines.append("📅 <b>No time set</b>")
+        lines += ["", "📅 <b><u>No time set</u></b>"]
         for task in untimed:
-            lines += _lines_for(task, "  • ")
+            lines.append(f"🎯 <i>{_title(task)}</i>")
     if done:
-        lines.append("")
-        lines.append(f"✅ <b>Done</b> ({len(done)})")
-        lines += [f"  • {_label(task)}" for task in done]
-    lines.append("")
-    lines.append(f"Total: {len(tasks)} task(s)")
+        # <pre> renders as a copyable block in Telegram, which is what makes the
+        # finished list something you can paste into a standup instead of retype.
+        body = "\n".join(f" • {_title(task)}" for task in done)
+        lines += ["", f"<pre>✅ Done ({len(done)})\n{body}</pre>"]
+    lines += ["", f"<b><u>Total: {len(tasks)} task(s)</u></b>"]
     return "\n".join([*head, *lines])
 
 

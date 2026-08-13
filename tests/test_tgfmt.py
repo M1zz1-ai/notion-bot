@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import re
 
+import pytest
+
 from core.tgfmt import to_telegram_html
 
 # Telegram's HTML parse mode accepts exactly these tags (verified against
@@ -19,6 +21,29 @@ _TAG_RE = re.compile(r"</?([a-zA-Z][-a-zA-Z0-9]*)")
 
 def _tags(html: str) -> set[str]:
     return set(_TAG_RE.findall(html))
+
+
+_FULL_TAG_RE = re.compile(r"<(/?)([a-zA-Z][-a-zA-Z0-9]*)(?:\s[^>]*)?>")
+
+
+def _is_sendable(html: str) -> bool:
+    """Would Telegram's HTML parser accept this? Allowed tags, properly nested.
+
+    Interleaved tags (``<b><i>x</b></i>``) make the Bot API reject the WHOLE
+    message with "can't parse entities", so this is the property that decides
+    whether the user gets their reply at all.
+    """
+    stack: list[str] = []
+    for match in _FULL_TAG_RE.finditer(html):
+        closing, name = match.group(1), match.group(2)
+        if name not in ALLOWED_TAGS:
+            return False
+        if closing:
+            if not stack or stack.pop() != name:
+                return False
+        else:
+            stack.append(name)
+    return not stack
 
 
 # ---- escaping (the crash) ----------------------------------------------
@@ -55,6 +80,38 @@ def test_bold_asterisks_become_b_tag() -> None:
 
 def test_italic_and_strike() -> None:
     assert to_telegram_html("*soon* and ~~gone~~") == "<i>soon</i> and <s>gone</s>"
+
+
+def test_bold_italic_underscore_inside_bold_nests_correctly() -> None:
+    # The digest stanza style the notion agent is told to write.
+    assert to_telegram_html("**_13:00_**") == "<b><i>13:00</i></b>"
+
+
+def test_triple_stars_nest_correctly_instead_of_interleaving() -> None:
+    # Left to the bold+italic passes this produced "<b><i>x</b></i>", which
+    # Telegram rejects with "can't parse entities" — the whole message is lost.
+    assert to_telegram_html("***13:00***") == "<b><i>13:00</i></b>"
+
+
+def test_triple_underscores_nest_correctly() -> None:
+    assert to_telegram_html("___13:00___") == "<b><i>13:00</i></b>"
+
+
+def test_digest_style_stanzas_convert_to_the_house_look() -> None:
+    reply = (
+        "🎯 **_09:00_** *Разбор почты*\n\n"
+        "⚡ **_13:00_** *M1zz1 OS & дашборд*\n\n"
+        "📅 **Без времени**\n🎯 *Позвонить Саше*\n\n"
+        "```\n✅ Done (1)\n • Зарядка\n```\n\n"
+        "**Итого: 4 задачи**"
+    )
+    out = to_telegram_html(reply)
+    assert _tags(out) <= ALLOWED_TAGS
+    assert "🎯 <b><i>09:00</i></b> <i>Разбор почты</i>" in out
+    assert "⚡ <b><i>13:00</i></b> <i>M1zz1 OS &amp; дашборд</i>" in out
+    assert "📅 <b>Без времени</b>" in out
+    assert "<pre>✅ Done (1)\n • Зарядка\n</pre>" in out
+    assert out.endswith("<b>Итого: 4 задачи</b>")
 
 
 def test_underscores_inside_a_word_are_not_italics() -> None:
@@ -108,3 +165,57 @@ def test_full_reply_uses_only_telegram_tags() -> None:
 
 def test_empty_input_is_empty_output() -> None:
     assert to_telegram_html("") == ""
+
+
+# ---- nesting fallback (the other crash) ---------------------------------
+#
+# Telegram rejects a message whose tags interleave, exactly as it rejects an
+# unescaped `<`, and with the same symptom: the entire reply is dropped. The
+# converter therefore checks its own output and, when the nesting is broken,
+# returns the plain escaped text instead. Ugly beats lost.
+
+# Notion task titles carrying these markers are interpolated into the digest
+# stanza the notion agent is prompted to write; each combination below produced
+# interleaved HTML before the fallback existed.
+_BREAKING_TITLES = ["**bold** start", "***triple***", "****quad****"]
+_STANZA_TEMPLATES = [
+    "🎯 **_09:00_** *{t}*",
+    "🎯 *{t}*",
+    "📅 **Без времени**\n🎯 *{t}*",
+    "**{t}**",
+    "🎯 **_09:00_** *{t}*\n\n**Итого: 1 задача**",
+]
+
+
+@pytest.mark.parametrize("title", _BREAKING_TITLES)
+@pytest.mark.parametrize("template", _STANZA_TEMPLATES)
+def test_adversarial_task_titles_stay_sendable(title: str, template: str) -> None:
+    assert _is_sendable(to_telegram_html(template.format(t=title)))
+
+
+def test_interleaved_output_falls_back_to_escaped_original() -> None:
+    # `**bold** start` inside the stanza's `*…*` gives `<b><i>bold</b> start</i>`.
+    out = to_telegram_html("🎯 ***bold** start*")
+    assert out == "🎯 ***bold** start*"
+    assert _tags(out) == set()
+
+
+def test_fallback_still_escapes_the_metacharacters() -> None:
+    # The fallback is the LAST line of defence, so it may not undo step 2:
+    # a raw `&` or `<` in the plain text would fail the send just as hard.
+    out = to_telegram_html("***a & b** <c> start*")
+    assert out == "***a &amp; b** &lt;c&gt; start*"
+
+
+def test_four_star_runs_are_sendable() -> None:
+    # `****x****` used to render `<b><i><b>x</i></b></b>` — interleaved.
+    assert _is_sendable(to_telegram_html("****x****"))
+
+
+def test_wellformed_replies_are_not_flattened_by_the_fallback() -> None:
+    # The check must be inert on everything that was already fine.
+    reply = "🎯 **_09:00_** *Разбор почты* & `code`\n\n> quote\n\n**Итого: 1 задача**"
+    out = to_telegram_html(reply)
+    assert _is_sendable(out)
+    assert "<b><i>09:00</i></b>" in out
+    assert "<i>Разбор почты</i>" in out
