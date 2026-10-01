@@ -142,6 +142,7 @@ def build_system(*, today: date | None = None, tz: tzinfo | None = None) -> str:
     today = today or datetime.now(tz).date()
     tomorrow = today + timedelta(days=1)
     offset = _utc_offset(tz)
+    zone = getattr(tz, "key", None) or "the host's local zone"
     return (
         "You are a Notion task manager assistant for Bogdan's Daily Task Tracker.\n\n"
         f"Today is {today.isoformat()}. \"today\" = {today.isoformat()}, "
@@ -149,10 +150,10 @@ def build_system(*, today: date | None = None, tz: tzinfo | None = None) -> str:
         "Database: Daily Task Tracker. Properties:\n"
         "- title: the task title (required).\n"
         "- date: either a bare day (YYYY-MM-DD) or a full ISO 8601 datetime with "
-        f"offset (YYYY-MM-DDTHH:MM:SS{offset}). The timezone is Europe/London "
+        f"offset (YYYY-MM-DDTHH:MM:SS{offset}). Bogdan's timezone is {zone} "
         f"and its offset RIGHT NOW is {offset} — always use exactly that offset, "
         "never guess another one. The time you write is his wall clock: an offset "
-        "that disagrees with Europe/London is corrected to it, never obeyed, so "
+        f"that disagrees with {zone} is corrected to it, never obeyed, so "
         "the hour you name is the hour that lands.\n"
         f"- status: one of {', '.join(STATUS_VALUES)}.\n"
         f"- type: one or more of {', '.join(TYPE_VALUES)} (exactly these, no "

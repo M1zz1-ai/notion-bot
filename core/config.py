@@ -27,12 +27,13 @@ MASTER_ENV_PATH = (
 # if absent from the env file it falls back to this rather than raising.
 DEFAULTS: dict[str, str] = {
     "REDIS_URL": "redis://localhost:6379",
-    # Wall-clock scheduling (notion-bot digest + slot pinger). The zone has DST
-    # (its offset changes twice a year), which is exactly why the
-    # zone stays a config key (a ZoneInfo name) and never a baked-in offset.
-    # Historical Notion rows still carry +03:00 — those are legacy offsets on
+    # Wall-clock scheduling (notion-bot digest + slot pinger). The default is
+    # UTC; set TIMEZONE in the env file to the ZoneInfo name the clock should
+    # follow. The zone stays a config key (a ZoneInfo name) and never a baked-in
+    # offset, because a zone with DST changes its offset twice a year.
+    # Historical Notion rows still carry +03:00: those are legacy offsets on
     # the data, not a statement about where the clock lives.
-    "TIMEZONE": "Europe/London",
+    "TIMEZONE": "UTC",
     "DIGEST_HOUR": "11",
 }
 

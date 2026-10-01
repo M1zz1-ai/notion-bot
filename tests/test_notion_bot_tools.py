@@ -481,3 +481,10 @@ def test_build_system_rebuilds_per_day() -> None:
     s2 = tools.build_system(today=date(2026, 6, 20))
     assert "2026-06-20" in s2 and "2026-06-21" in s2
     assert s1 != s2
+
+
+def test_build_system_names_the_configured_zone_not_a_fixed_one() -> None:
+    """The zone in the prompt is the one the bot runs on, never a baked-in city."""
+    sys = tools.build_system(today=date(2026, 7, 25), tz=ZoneInfo("Europe/Berlin"))
+    assert "Europe/Berlin" in sys
+    assert "Europe/London" not in sys
